@@ -38,8 +38,9 @@ void receivedData(int *data)
 {
   if (Serial.available() > 0)
   {
-    char receivedChars[32];
-    Serial.readBytesUntil('\n', receivedChars, sizeof(receivedChars));
+    char receivedChars[50];
+    memset(receivedChars, 0, sizeof(receivedChars));                       
+    Serial.readBytesUntil('\n', receivedChars, sizeof(receivedChars) - 1); 
     int number1, number2;
     int fieldsRead = sscanf(receivedChars, "%d,%d", &number1, &number2);
 
