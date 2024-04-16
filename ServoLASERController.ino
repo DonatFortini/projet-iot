@@ -34,6 +34,10 @@ void loop()
   delay(100);
 }
 
+
+/**
+ * @brief Fonction pour lire les données reçues par le port série
+*/
 void receivedData(int *data)
 {
   if (Serial.available() > 0)

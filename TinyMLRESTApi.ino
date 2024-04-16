@@ -36,12 +36,13 @@
 static bool debug_nn = false; // Set this to true to see e.g. features generated from the raw signal
 static bool is_initialised = false;
 uint8_t *snapshot_buf; // points to the output of the capture
+
 WiFiServer server(80);
 const char *ssid = "Airbox-0FDB";
 const char *password = "csm27LnEa9VX";
 
-StaticJsonDocument<250> jsonDocument;
-char buffer[250];
+StaticJsonDocument<500> jsonDocument;
+char buffer[500];
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -87,8 +88,8 @@ void wifi_connection(void);
 void start_server(void);
 
 void getData(void);
-void create_json(char *tag, float value, char *unit);
-void add_json_object(char *tag, float value, char *unit);
+void create_json(char *tag, int xValue, int yValue, int width, int height, float precison);
+void add_json_object(char *tag, int xValue, int yValue, int width, int height, float precison);
 
 /**
  * @brief      Arduino setup function
@@ -220,27 +221,37 @@ void start_server(void)
     server.on("/data", getData);
 }
 
-void create_json(char *tag, float value, char *unit)
+void create_json(char *tag, int xValue, int yValue, int width, int height, float precison)
 {
     jsonDocument.clear();
     jsonDocument["type"] = tag;
-    jsonDocument["value"] = value;
-    jsonDocument["unit"] = unit;
+    jsonDocument["x"] = xValue;
+    jsonDocument["y"] = yValue;
+    JsonDocument["width"] = width;
+    JsonDocument["height"] = height;
+    JsonDocument["precision"] = precison;
     serializeJson(jsonDocument, buffer);
 }
 
-void add_json_object(char *tag, float value, char *unit)
+void add_json_object(char *tag, int xValue, int yValue, int width, int height, float precison)
 {
     JsonObject obj = jsonDocument.createNestedObject();
     obj["type"] = tag;
-    obj["value"] = value;
-    obj["unit"] = unit;
+    obj["x"] = xValue;
+    obj["y"] = yValue;
+    obj["width"] = width;
+    obj["height"] = height;
+    obj["precision"] = precison;
 }
 
+/**
+ * @brief      Get data from the TinyML model
+ *
+ */
 void getData(void)
 {
     Serial.println("Get data");
-    create_json("name", value, "param");
+    create_json("Humain", 10, 10, 20, 20, 0.5);
     server.send(200, "application/json", buffer);
 }
 
