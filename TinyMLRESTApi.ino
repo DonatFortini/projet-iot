@@ -5,6 +5,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <WiFiManager.h>
 
 /*Define  module and pins*/
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -41,8 +42,10 @@ WiFiServer server(80);
 const char *ssid = "Airbox-0FDB";
 const char *password = "csm27LnEa9VX";
 
-StaticJsonDocument<500> jsonDocument;
-char buffer[500];
+WiFiManager wm;
+
+StaticJsonDocument<1024> jsonDocument;
+char buffer[1024];
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -214,11 +217,11 @@ void wifi_connection(void)
  */
 void start_server(void)
 {
+    server.on("/data", getData);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
     Serial.println(myAddress);
-    server.on("/data", getData);
 }
 
 void create_json(char *tag, int xValue, int yValue, int width, int height, float precison)
@@ -242,6 +245,24 @@ void add_json_object(char *tag, int xValue, int yValue, int width, int height, f
     obj["width"] = width;
     obj["height"] = height;
     obj["precision"] = precison;
+}
+
+void handlePost()
+{
+    if (server.hasArg("plain") == false)
+    {
+        server.send(400, "text/plain", "Body not present");
+        return;
+    }
+
+    String body = server.arg("plain");
+    deserializeJson(jsonDocument, body);
+    int x = jsonDocument["x"];
+    int y = jsonDocument["y"];
+    int width = jsonDocument["width"];
+    int height = jsonDocument["height"];
+    float precision = jsonDocument["precision"];
+    server.send(200, "application/json", "{}");
 }
 
 /**
