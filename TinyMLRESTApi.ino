@@ -5,6 +5,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include "sensible_data.h"
 
 /*Define  module and pins*/
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -38,8 +39,7 @@ static bool is_initialised = false;
 uint8_t *snapshot_buf; // points to the output of the capture
 
 WebServer server(80);
-const char *ssid = "iPhone de Paul-Antoine";
-const char *password = "sucepute";
+
 
 StaticJsonDocument<500> jdoc;
 char buffer[500];
