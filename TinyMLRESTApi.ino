@@ -38,8 +38,8 @@ static bool is_initialised = false;
 uint8_t *snapshot_buf; // points to the output of the capture
 
 WebServer server(80);
-const char *ssid = "Airbox-0FDB";
-const char *password = "csm27LnEa9VX";
+const char *ssid = "iPhone de Paul-Antoine";
+const char *password = "sucepute";
 
 StaticJsonDocument<500> jdoc;
 char buffer[500];
@@ -88,7 +88,7 @@ void wifi_connection(void);
 void start_server(void);
 
 void getData(void);
-void create_json(char *tag, int xValue, int yValue, int width, int height, float precison);
+void create_json(const char *tag, int xValue, int yValue, int width, int height, float precison);
 
 
 /**
@@ -171,10 +171,12 @@ void loop()
         {
             continue;
         }
+        create_json(bb.label, bb.x, bb.y, bb.width, bb.height, bb.value);
         ei_printf("    %s (%f) [ x: %u, y: %u, width: %u, height: %u ]\n", bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
     }
     if (!bb_found)
     {
+        create_json("No object", 0, 0, 0, 0, 100.00);
         ei_printf("    No objects found\n");
     }
 #else
@@ -193,7 +195,7 @@ void loop()
 }
 
 /**
- * @brief      Connecte le device a internet
+ * @brief      Connecte le device au wifi
  *
  */
 void wifi_connection(void)
@@ -209,19 +211,30 @@ void wifi_connection(void)
 }
 
 /**
- * @brief      Demmarre le server
+ * @brief      Demmarre le server et met en place les routes de l'api
  *
  */
 void start_server(void)
 {
-    server.on("/data", getData);
+    server.on("/data", sendData);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
     Serial.println(myAddress);
 }
 
-void create_json(char *tag, int xValue, int yValue, int width, int height, float precison)
+
+/**
+ * @brief      Creer un json avec les valeurs du model
+ *
+ * @param[in]  tag       The tag
+ * @param[in]  xValue    The x value
+ * @param[in]  yValue    The y value
+ * @param[in]  width     The width
+ * @param[in]  height    The height
+ * @param[in]  precison  The precison
+ */
+void create_json(const char *tag, int xValue, int yValue, int width, int height, float precison)
 {
     jdoc["type"] = tag;
     jdoc["x"] = xValue;
@@ -234,13 +247,12 @@ void create_json(char *tag, int xValue, int yValue, int width, int height, float
 }
 
 /**
- * @brief      Get data from the TinyML model
+ * @brief    Envoies les données du model sur le server pour quelle puisse etre fetch grace a l'api
  *
  */
-void getData(void)
-{ // TODO : collect data from the model
+void sendData(void)
+{ 
     Serial.println("Get data");
-    create_json("Humain", 0, 0, 0, 0, 0.0);
     server.send(200, "application/json", buffer);
 }
 
