@@ -5,7 +5,6 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include <WiFiManager.h>
 
 /*Define  module and pins*/
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -38,14 +37,12 @@ static bool debug_nn = false; // Set this to true to see e.g. features generated
 static bool is_initialised = false;
 uint8_t *snapshot_buf; // points to the output of the capture
 
-WiFiServer server(80);
+WebServer server(80);
 const char *ssid = "Airbox-0FDB";
 const char *password = "csm27LnEa9VX";
 
-WiFiManager wm;
-
-StaticJsonDocument<1024> jsonDocument;
-char buffer[1024];
+StaticJsonDocument<500> jdoc;
+char buffer[500];
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -92,7 +89,7 @@ void start_server(void);
 
 void getData(void);
 void create_json(char *tag, int xValue, int yValue, int width, int height, float precison);
-void add_json_object(char *tag, int xValue, int yValue, int width, int height, float precison);
+
 
 /**
  * @brief      Arduino setup function
@@ -226,43 +223,14 @@ void start_server(void)
 
 void create_json(char *tag, int xValue, int yValue, int width, int height, float precison)
 {
-    jsonDocument.clear();
-    jsonDocument["type"] = tag;
-    jsonDocument["x"] = xValue;
-    jsonDocument["y"] = yValue;
-    JsonDocument["width"] = width;
-    JsonDocument["height"] = height;
-    JsonDocument["precision"] = precison;
-    serializeJson(jsonDocument, buffer);
-}
+    jdoc["type"] = tag;
+    jdoc["x"] = xValue;
+    jdoc["y"] = yValue;
+    jdoc["width"] = width;
+    jdoc["height"] = height;
+    jdoc["precision"] = precison;
 
-void add_json_object(char *tag, int xValue, int yValue, int width, int height, float precison)
-{
-    JsonObject obj = jsonDocument.createNestedObject();
-    obj["type"] = tag;
-    obj["x"] = xValue;
-    obj["y"] = yValue;
-    obj["width"] = width;
-    obj["height"] = height;
-    obj["precision"] = precison;
-}
-
-void handlePost()
-{
-    if (server.hasArg("plain") == false)
-    {
-        server.send(400, "text/plain", "Body not present");
-        return;
-    }
-
-    String body = server.arg("plain");
-    deserializeJson(jsonDocument, body);
-    int x = jsonDocument["x"];
-    int y = jsonDocument["y"];
-    int width = jsonDocument["width"];
-    int height = jsonDocument["height"];
-    float precision = jsonDocument["precision"];
-    server.send(200, "application/json", "{}");
+    serializeJson(jdoc, buffer);
 }
 
 /**
@@ -270,9 +238,8 @@ void handlePost()
  *
  */
 void getData(void)
-{
+{ // TODO : collect data from the model
     Serial.println("Get data");
-    create_json("Humain", 10, 10, 20, 20, 0.5);
     server.send(200, "application/json", buffer);
 }
 
