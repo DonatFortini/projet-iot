@@ -15,21 +15,30 @@ else:
 
 baudrate = 115200
 
-def main():
+def fetch_data(url_param: str):
     try:
-        response = requests.get(url)
-        results = response.json()
-        print(results)
+        while True:
+            response = requests.get(url_param)
+            results = response.json()
+            print(results)
     except Exception as e:
         print(str(e))
 
-    with serial.Serial(port, baudrate, timeout=1) as ser:
-        while ser.isOpen():
-            try:
-                ser.write()
-            except Exception as e:
-                print(str(e))
-            time.sleep(1)
+def write_data():
+    try:
+        with serial.Serial(port, baudrate, timeout=1) as ser:
+            while ser.isOpen():
+                try:
+                    ser.write()
+                except Exception as e:
+                    print(str(e))
+    except:
+        print("pas de port serial")
+
+def main():
+    fetch_data(url)
+    write_data()    
+    time.sleep(0.5)
 
 if __name__ == "__main__":
     main()
