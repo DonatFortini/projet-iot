@@ -240,6 +240,7 @@ void create_json(char *tag, int xValue, int yValue, int width, int height, float
 void getData(void)
 { // TODO : collect data from the model
     Serial.println("Get data");
+    create_json("Humain", 0, 0, 0, 0, 0.0);
     server.send(200, "application/json", buffer);
 }
 
