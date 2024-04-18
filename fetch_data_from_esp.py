@@ -15,8 +15,9 @@ MQTT_PASSWORD = "pi-corte"
 MQTT_TOPIC = "iot/canon"
 MQTT_PORT = 1883
 
+url_fetch_data = "http://10.3.141.251/MLData"
+url_set_position_canon = "http://10.3.141.251/set"
 
-url = "http://172.20.10.3/MLData"
 if sys.platform == "linux":
     try:
         port = "/dev/ttyUSB0"
@@ -114,12 +115,18 @@ def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical:
 
 
 def main():
-    # results = fetch_data(url)
-    # print(results)
-    client = connect_mqtt()
-    client.publish(MQTT_TOPIC, "ilyas")
-    # write_data()
-    time.sleep(0.5)
+    temps_initial = time.time()
+    while True:
+
+        results = fetch_data(url_fetch_data)
+        print(results)
+        temps_actuel = time.time()
+        temps_ecoule = temps_actuel - temps_initial
+        if temps_ecoule > 10:
+            print("envoie message mqtt")
+            client = connect_mqtt()
+            client.publish(MQTT_TOPIC, str(results))
+        # write_data()
 
 if __name__ == "__main__":
     main()

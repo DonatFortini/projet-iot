@@ -4,3 +4,4 @@ idna==3.7
 pyserial==3.5
 requests==2.31.0
 urllib3==2.2.1
+paho-mqtt==1.6.1
