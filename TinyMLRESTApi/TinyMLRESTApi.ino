@@ -104,10 +104,9 @@ void setPosition(void);
 void setup()
 {
     Serial.begin(115200);
-    while (!Serial)
-        ;
     pinMode(BUILT_IN_LED, OUTPUT);
-
+    analogWrite(BUILT_IN_LED, 5);
+    analogWrite(BUILT_IN_LED, 0);
     wifi_connection();
     start_server();
     ei_sleep(5000);
@@ -117,9 +116,9 @@ void setup()
     else
         ei_printf("Camera initialized\r\n");
 
-    digitalWrite(BUILT_IN_LED, 10);
+    analogWrite(BUILT_IN_LED, 10);
     ei_printf("\nStarting continious inference in 2 seconds...\n");
-    digitalWrite(BUILT_IN_LED, LOW);
+    analogWrite(BUILT_IN_LED, LOW);
 
     ei_sleep(2000);
 }
@@ -169,8 +168,7 @@ void loop()
     }
 
     // print the predictions
-    ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-              result.timing.dsp, result.timing.classification, result.timing.anomaly);
+    // ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",result.timing.dsp, result.timing.classification, result.timing.anomaly);
 
 #if EI_CLASSIFIER_OBJECT_DETECTION == 1
     bool bb_found = result.bounding_boxes[0].value > 0;
@@ -182,12 +180,12 @@ void loop()
             continue;
         }
         create_json(bb.label, bb.x, bb.y, bb.width, bb.height, bb.value);
-        // ei_printf("    %s (%f) [ x: %u, y: %u, width: %u, height: %u ]\n", bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
+        ei_printf("    %s (%f) [ x: %u, y: %u, width: %u, height: %u ]\n", bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
     }
     if (!bb_found)
     {
         create_json("No object", 0, 0, 0, 0, 100.00);
-        // ei_printf("    No objects found\n");
+        ei_printf("    No objects found\n");
     }
 #else
     for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++)
@@ -205,21 +203,61 @@ void loop()
 }
 
 /**
- * @brief      Connecte le device au wifi
+ * @brief      Connecte le device au wifi avec les identifiants donnés.
+ *            la LED s'allume pendant la connexion et s'éteint une fois la connexion établie
  *
  */
 void wifi_connection(void)
 {
     Serial.println("Connecting to WiFi...");
-    digitalWrite(BUILT_IN_LED, 50);
     WiFi.begin(ssid, password);
+    short int x = 0;
     while (WiFi.status() != WL_CONNECTED)
     {
-        delay(1000);
-        Serial.println("Connecting...");
+        fade();
     }
     Serial.println("Connected to WiFi");
-    digitalWrite(BUILT_IN_LED, LOW);
+    blink(2, 100);
+    analogWrite(BUILT_IN_LED, 10);
+}
+
+/**
+ * @brief      Fait clignoter la LED
+ *
+ * @param[in]  times       nombre de clignotements
+ * @param[in]  delay_time  durée d'un clignotement
+ */
+void blink(int times, int delay_time = 500)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        analogWrite(BUILT_IN_LED, 10);
+        delay(delay_time);
+        analogWrite(BUILT_IN_LED, 0);
+        delay(delay_time);
+    }
+}
+
+/**
+ * @brief      Fait un fade de la LED
+ *
+ * @param[in]  delay_time  The delay time
+ */
+void fade(int delay_time = 500)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            analogWrite(BUILT_IN_LED, j);
+            delay(delay_time);
+        }
+        for (int j = 10; j > 0; j--)
+        {
+            analogWrite(BUILT_IN_LED, j);
+            delay(delay_time);
+        }
+    }
 }
 
 /**
