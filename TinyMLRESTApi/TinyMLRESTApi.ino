@@ -44,8 +44,8 @@ WebServer server(80);
 StaticJsonDocument<500> jdoc;
 char buffer[500];
 
-const char *ssid = "iPhone de Paul-Antoine";
-const char *password = "sucepute";
+const char *ssid = "SSIDODO";
+const char *password = "11235813213455";
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -261,7 +261,7 @@ void fade(int delay_time)
 void start_server(void)
 {
     server.on("/MLData", HTTP_GET, espToAPI);
-    server.on("setPosition", HTTP_POST, setPosition);
+    server.on("/setPosition", HTTP_POST, setPosition);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
