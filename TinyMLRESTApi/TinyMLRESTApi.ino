@@ -5,8 +5,6 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include <SoftwareSerial.h>
-
 
 /*Define  module and pins*/
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -29,8 +27,7 @@
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
-#define TX_GPIO_NUM 1
-#define RX_GPIO_NUM 3
+#define BUILT_IN_LED 4
 
 /* Constant defines -------------------------------------------------------- */
 #define EI_CAMERA_RAW_FRAME_BUFFER_COLS 320
@@ -50,11 +47,8 @@ char buffer[500];
 StaticJsonDocument<250> calculations;
 char calcBuffer[250];
 
-const char *ssid = "SSIDODO";
-const char *password = "11235813213455";
-
-EspSoftwareSerial::UART espSerial;
-
+const char *ssid = "iPhone de Paul-Antoine";
+const char *password = "sucepute";
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -110,10 +104,9 @@ void setPosition(void);
 void setup()
 {
     Serial.begin(115200);
-    espSerial.begin(9600, SWSERIAL_8N1, RX_GPIO_NUM, TX_GPIO_NUM, false);
-    // comment out the below line to start inference immediately after upload
     while (!Serial)
         ;
+    pinMode(BUILT_IN_LED, OUTPUT);
 
     wifi_connection();
     start_server();
@@ -124,7 +117,10 @@ void setup()
     else
         ei_printf("Camera initialized\r\n");
 
+    digitalWrite(BUILT_IN_LED, 10);
     ei_printf("\nStarting continious inference in 2 seconds...\n");
+    digitalWrite(BUILT_IN_LED, LOW);
+
     ei_sleep(2000);
 }
 
@@ -215,6 +211,7 @@ void loop()
 void wifi_connection(void)
 {
     Serial.println("Connecting to WiFi...");
+    digitalWrite(BUILT_IN_LED, 50);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -222,6 +219,7 @@ void wifi_connection(void)
         Serial.println("Connecting...");
     }
     Serial.println("Connected to WiFi");
+    digitalWrite(BUILT_IN_LED, LOW);
 }
 
 /**
@@ -270,12 +268,12 @@ void setPosition(void)
     int servoX = calculations["servoX"];
     int servoY = calculations["servoY"];
     Serial.println("Setting servo position");
-    //espSerial.println("%d,%d",servoX,servoY);
+    Serial.printf("/%d,%d", servoX, servoY);
 }
 
 void test(void)
 {
-    espSerial.println("10,120");
+    Serial.println("/10,120");
 }
 
 /**
