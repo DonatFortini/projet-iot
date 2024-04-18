@@ -261,7 +261,7 @@ void fade(int delay_time)
 void start_server(void)
 {
     server.on("/MLData", HTTP_GET, espToAPI);
-    server.on("/setPosition", HTTP_POST, setPosition);
+    server.on("/set",HTTP_GET, setPosition);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
