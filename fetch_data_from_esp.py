@@ -1,12 +1,11 @@
 import random
-
 import requests
-import json
 import serial
-import sys 
+import sys
 import time
 import paho.mqtt.client as mqtt_client
-import ssl
+import numpy as np
+
 
 MQTT_CLIENT_ID = f'publish-{random.randint(0, 1000)}'
 MQTT_BROKER = "10.3.141.1"
@@ -27,6 +26,10 @@ else:
     port = "COM4"
 
 baudrate = 115200
+
+# ------------------- MQTT -------------------#
+
+
 def connect_mqtt():
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
@@ -40,6 +43,7 @@ def connect_mqtt():
     client.connect(MQTT_BROKER, MQTT_PORT)
     return client
 
+
 def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
@@ -48,9 +52,17 @@ def subscribe(client: mqtt_client):
     client.on_message = on_message
 
 
+# ------------------- API -------------------#
 
+def fetch_data(url_param: str = url_fetch_data) -> dict:
+    """ Récupère les données de l'esp32
 
-def fetch_data(url_param: str):
+    Args:
+        url_param (str): url de la route get de  l'esp32
+
+    Returns:
+        dict: Donnée du modele de TinyML
+    """
     try:
         while True:
             response = requests.get(url_param)
@@ -59,20 +71,38 @@ def fetch_data(url_param: str):
     except Exception as e:
         print(str(e))
 
-def write_data():
+
+def set_position_canon(data: tuple) -> dict:
+    """ Envois les coordonnées du canon à l'esp32
+
+    Args:
+        data (tuple): Coordonnées du canon en angle
+
+    Returns:
+        dict: _description_
+    """
     try:
-        with serial.Serial(port, baudrate, timeout=1) as ser:
-            while ser.isOpen():
-                try:
-                    ser.write()
-                except Exception as e:
-                    print(str(e))
-    except:
-        print("pas de port serial")
+        url_param = url_set_position_canon+"?x={data[0]}&y={data[1]}"
+        response = requests.get(url_param)
+        return response.json()
+    except Exception as e:
+        print(str(e))
 
 
-def sendDataToMqttBroker():
-    print()
+# deprecated function
+# def write_data():
+#     """ Ecris les données sur le port serial de l'arduino
+#     """
+#     try:
+#         with serial.Serial(port, baudrate, timeout=1) as ser:
+#             while ser.isOpen():
+#                 try:
+#                     ser.write()
+#                 except Exception as e:
+#                     print(str(e))
+#     except:
+#         print("pas de port serial")
+
 
 def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical: int, distance_focale: int, resolution_image: tuple) -> tuple:
     """calcul les angles du canon avec les coordonnées d'un pixel sur l'écran de la caméra (ou du flux vidéo de la caméra)
@@ -91,14 +121,14 @@ def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical:
     centre_image = (resolution_image[0] / 2, resolution_image[1] / 2)
 
     theta_rad = np.arctan2(
-        u - centre_image[0], 
+        u - centre_image[0],
         distance_focale * fov_horizontal / resolution_image[0])
-    
+
     theta = np.degrees(theta_rad)
     theta = 180 if theta < 0 else theta
 
     phi_rad = np.arctan2(
-        v - centre_image[1], 
+        v - centre_image[1],
         distance_focale * fov_vertical / resolution_image[1])
     phi = np.degrees(phi_rad)
     phi = 180 if phi < 0 else phi
@@ -111,14 +141,18 @@ def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical:
     b = phi * (fov_vertical/180)
     print(a, b)
 
-    return(a, b)
+    return (a, b)
 
 
 def main():
     temps_initial = time.time()
     while True:
+        results = fetch_data()
+        if results["type"] == "Humain":
+            angles = calculer_angles(
+                results["x"], results["y"], 75, 75, 3, (1920, 1080))
+            set_position_canon(angles)
 
-        results = fetch_data(url_fetch_data)
         print(results)
         temps_actuel = time.time()
         temps_ecoule = temps_actuel - temps_initial
@@ -126,7 +160,7 @@ def main():
             print("envoie message mqtt")
             client = connect_mqtt()
             client.publish(MQTT_TOPIC, str(results))
-        # write_data()
+
 
 if __name__ == "__main__":
     main()
