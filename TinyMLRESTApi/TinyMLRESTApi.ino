@@ -225,7 +225,7 @@ void blink(int times, int delay_time)
 {
     for (int i = 0; i < 5; i++)
     {
-        analogWrite(BUILT_IN_LED, 10);
+        analogWrite(BUILT_IN_LED, 7);
         delay(delay_time);
         analogWrite(BUILT_IN_LED, 0);
         delay(delay_time);
@@ -241,12 +241,12 @@ void fade(int delay_time)
 {
     for (int i = 0; i < 5; i++)
     {
-        for (int j = 0; j < 10; j++)
+        for (int j = 0; j < 7; j++)
         {
             analogWrite(BUILT_IN_LED, j);
             delay(delay_time);
         }
-        for (int j = 10; j > 0; j--)
+        for (int j = 7; j > 0; j--)
         {
             analogWrite(BUILT_IN_LED, j);
             delay(delay_time);
