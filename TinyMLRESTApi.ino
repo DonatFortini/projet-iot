@@ -5,7 +5,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include "sensible_data.h"
+#include <SoftwareSerial.h>
+
 
 /*Define  module and pins*/
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -28,6 +29,9 @@
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
+#define TX_GPIO_NUM 1
+#define RX_GPIO_NUM 3
+
 /* Constant defines -------------------------------------------------------- */
 #define EI_CAMERA_RAW_FRAME_BUFFER_COLS 320
 #define EI_CAMERA_RAW_FRAME_BUFFER_ROWS 240
@@ -40,9 +44,17 @@ uint8_t *snapshot_buf; // points to the output of the capture
 
 WebServer server(80);
 
-
 StaticJsonDocument<500> jdoc;
 char buffer[500];
+
+StaticJsonDocument<250> calculations;
+char calcBuffer[250];
+
+const char *ssid = "SSIDODO";
+const char *password = "11235813213455";
+
+EspSoftwareSerial::UART espSerial;
+
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -79,17 +91,18 @@ static camera_config_t camera_config = {
 
 /* Function definitions ------------------------------------------------------- */
 /*ML Functions*/
+
 bool ei_camera_init(void);
 void ei_camera_deinit(void);
 bool ei_camera_capture(uint32_t img_width, uint32_t img_height, uint8_t *out_buf);
 
 /*Server Functions*/
+
 void wifi_connection(void);
 void start_server(void);
-
-void getData(void);
+void espToAPI(void);
 void create_json(const char *tag, int xValue, int yValue, int width, int height, float precison);
-
+void setPosition(void);
 
 /**
  * @brief      Arduino setup function
@@ -97,6 +110,7 @@ void create_json(const char *tag, int xValue, int yValue, int width, int height,
 void setup()
 {
     Serial.begin(115200);
+    espSerial.begin(9600, SWSERIAL_8N1, RX_GPIO_NUM, TX_GPIO_NUM, false);
     // comment out the below line to start inference immediately after upload
     while (!Serial)
         ;
@@ -172,12 +186,12 @@ void loop()
             continue;
         }
         create_json(bb.label, bb.x, bb.y, bb.width, bb.height, bb.value);
-        ei_printf("    %s (%f) [ x: %u, y: %u, width: %u, height: %u ]\n", bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
+        // ei_printf("    %s (%f) [ x: %u, y: %u, width: %u, height: %u ]\n", bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
     }
     if (!bb_found)
     {
         create_json("No object", 0, 0, 0, 0, 100.00);
-        ei_printf("    No objects found\n");
+        // ei_printf("    No objects found\n");
     }
 #else
     for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++)
@@ -216,13 +230,13 @@ void wifi_connection(void)
  */
 void start_server(void)
 {
-    server.on("/data", sendData);
+    server.on("/MLData", espToAPI);
+    server.on("/setPosition", test);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
     Serial.println(myAddress);
 }
-
 
 /**
  * @brief      Creer un json avec les valeurs du model
@@ -247,12 +261,31 @@ void create_json(const char *tag, int xValue, int yValue, int width, int height,
 }
 
 /**
- * @brief    Envoies les données du model sur le server pour quelle puisse etre fetch grace a l'api
+ * @brief      deserialize json
  *
  */
-void sendData(void)
-{ 
-    Serial.println("Get data");
+void setPosition(void)
+{
+    deserializeJson(calculations, server.arg("plain"));
+    int servoX = calculations["servoX"];
+    int servoY = calculations["servoY"];
+    Serial.println("Setting servo position");
+    //espSerial.println("%d,%d",servoX,servoY);
+}
+
+void test(void)
+{
+    espSerial.println("10,120");
+}
+
+/**
+ * @brief    Envoies les données du model sur l'api
+ *
+ */
+void espToAPI(void)
+{
+    Serial.println("Get data from ML model");
+    Serial.println("Sending data to API");
     server.send(200, "application/json", buffer);
 }
 
