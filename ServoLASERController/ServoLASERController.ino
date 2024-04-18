@@ -15,7 +15,7 @@ void setup()
 
   servoBot.write(data[0]);
   servoTop.write(data[1]);
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop()
@@ -46,7 +46,7 @@ void receivedData(int *data)
     memset(receivedChars, 0, sizeof(receivedChars));                       
     Serial.readBytesUntil('\n', receivedChars, sizeof(receivedChars) - 1); 
     int number1, number2;
-    int fieldsRead = sscanf(receivedChars, "%d,%d", &number1, &number2);
+    int fieldsRead = sscanf(receivedChars, "/%d,%d", &number1, &number2); 
 
     if (fieldsRead == 2)
     {
@@ -56,10 +56,6 @@ void receivedData(int *data)
       Serial.println(number2);
       data[0] = number1;
       data[1] = number2;
-    }
-    else
-    {
-      Serial.println("Erreur: format non valide. Utilisez le format 'entier1,entier2'.");
     }
   }
 }

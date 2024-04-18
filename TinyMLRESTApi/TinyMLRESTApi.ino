@@ -5,7 +5,6 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include "sensible_data.h"
 
 /*Define  module and pins*/
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -28,6 +27,8 @@
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
+#define BUILT_IN_LED 4
+
 /* Constant defines -------------------------------------------------------- */
 #define EI_CAMERA_RAW_FRAME_BUFFER_COLS 320
 #define EI_CAMERA_RAW_FRAME_BUFFER_ROWS 240
@@ -40,9 +41,14 @@ uint8_t *snapshot_buf; // points to the output of the capture
 
 WebServer server(80);
 
-
 StaticJsonDocument<500> jdoc;
 char buffer[500];
+
+StaticJsonDocument<250> calculations;
+char calcBuffer[250];
+
+const char *ssid = "iPhone de Paul-Antoine";
+const char *password = "sucepute";
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
@@ -79,17 +85,18 @@ static camera_config_t camera_config = {
 
 /* Function definitions ------------------------------------------------------- */
 /*ML Functions*/
+
 bool ei_camera_init(void);
 void ei_camera_deinit(void);
 bool ei_camera_capture(uint32_t img_width, uint32_t img_height, uint8_t *out_buf);
 
 /*Server Functions*/
+
 void wifi_connection(void);
 void start_server(void);
-
-void getData(void);
+void espToAPI(void);
 void create_json(const char *tag, int xValue, int yValue, int width, int height, float precison);
-
+void setPosition(void);
 
 /**
  * @brief      Arduino setup function
@@ -97,10 +104,9 @@ void create_json(const char *tag, int xValue, int yValue, int width, int height,
 void setup()
 {
     Serial.begin(115200);
-    // comment out the below line to start inference immediately after upload
-    while (!Serial)
-        ;
-
+    pinMode(BUILT_IN_LED, OUTPUT);
+    analogWrite(BUILT_IN_LED, 5);
+    analogWrite(BUILT_IN_LED, 0);
     wifi_connection();
     start_server();
     ei_sleep(5000);
@@ -110,7 +116,10 @@ void setup()
     else
         ei_printf("Camera initialized\r\n");
 
+    analogWrite(BUILT_IN_LED, 10);
     ei_printf("\nStarting continious inference in 2 seconds...\n");
+    analogWrite(BUILT_IN_LED, LOW);
+
     ei_sleep(2000);
 }
 
@@ -159,8 +168,7 @@ void loop()
     }
 
     // print the predictions
-    ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-              result.timing.dsp, result.timing.classification, result.timing.anomaly);
+    // ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",result.timing.dsp, result.timing.classification, result.timing.anomaly);
 
 #if EI_CLASSIFIER_OBJECT_DETECTION == 1
     bool bb_found = result.bounding_boxes[0].value > 0;
@@ -195,19 +203,61 @@ void loop()
 }
 
 /**
- * @brief      Connecte le device au wifi
+ * @brief      Connecte le device au wifi avec les identifiants donnés.
+ *            la LED s'allume pendant la connexion et s'éteint une fois la connexion établie
  *
  */
 void wifi_connection(void)
 {
     Serial.println("Connecting to WiFi...");
     WiFi.begin(ssid, password);
+    short int x = 0;
     while (WiFi.status() != WL_CONNECTED)
     {
-        delay(1000);
-        Serial.println("Connecting...");
+        fade();
     }
     Serial.println("Connected to WiFi");
+    blink(2, 100);
+    analogWrite(BUILT_IN_LED, 10);
+}
+
+/**
+ * @brief      Fait clignoter la LED
+ *
+ * @param[in]  times       nombre de clignotements
+ * @param[in]  delay_time  durée d'un clignotement
+ */
+void blink(int times, int delay_time = 500)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        analogWrite(BUILT_IN_LED, 10);
+        delay(delay_time);
+        analogWrite(BUILT_IN_LED, 0);
+        delay(delay_time);
+    }
+}
+
+/**
+ * @brief      Fait un fade de la LED
+ *
+ * @param[in]  delay_time  The delay time
+ */
+void fade(int delay_time = 500)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            analogWrite(BUILT_IN_LED, j);
+            delay(delay_time);
+        }
+        for (int j = 10; j > 0; j--)
+        {
+            analogWrite(BUILT_IN_LED, j);
+            delay(delay_time);
+        }
+    }
 }
 
 /**
@@ -216,13 +266,13 @@ void wifi_connection(void)
  */
 void start_server(void)
 {
-    server.on("/data", sendData);
+    server.on("/MLData", espToAPI);
+    server.on("/setPosition", test);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
     Serial.println(myAddress);
 }
-
 
 /**
  * @brief      Creer un json avec les valeurs du model
@@ -247,12 +297,31 @@ void create_json(const char *tag, int xValue, int yValue, int width, int height,
 }
 
 /**
- * @brief    Envoies les données du model sur le server pour quelle puisse etre fetch grace a l'api
+ * @brief      deserialize json
  *
  */
-void sendData(void)
-{ 
-    Serial.println("Get data");
+void setPosition(void)
+{
+    deserializeJson(calculations, server.arg("plain"));
+    int servoX = calculations["servoX"];
+    int servoY = calculations["servoY"];
+    Serial.println("Setting servo position");
+    Serial.printf("/%d,%d", servoX, servoY);
+}
+
+void test(void)
+{
+    Serial.println("/10,120");
+}
+
+/**
+ * @brief    Envoies les données du model sur l'api
+ *
+ */
+void espToAPI(void)
+{
+    Serial.println("Get data from ML model");
+    Serial.println("Sending data to API");
     server.send(200, "application/json", buffer);
 }
 
