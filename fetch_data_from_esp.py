@@ -73,6 +73,45 @@ def write_data():
 def sendDataToMqttBroker():
     print()
 
+def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical: int, distance_focale: int, resolution_image: tuple) -> tuple:
+    """calcul les angles du canon avec les coordonnées d'un pixel sur l'écran de la caméra (ou du flux vidéo de la caméra)
+
+    Args:
+        coordonnees_pixel (tuple): les coordonnées du pixel
+        fov_horizontal (int): champ de vision horizontal de la caméra
+        fov_vertical (int): champ de vision vertical de la caméra
+        distance_focale (int): distance focale de la caméra
+        resolution_image (tuple): résolution de l'image de la caméra, exemple: (1920, 1080)
+
+    Returns:
+        tuple: _description_
+    """
+    u, v = coordonnees_pixel
+    centre_image = (resolution_image[0] / 2, resolution_image[1] / 2)
+
+    theta_rad = np.arctan2(
+        u - centre_image[0], 
+        distance_focale * fov_horizontal / resolution_image[0])
+    
+    theta = np.degrees(theta_rad)
+    theta = 180 if theta < 0 else theta
+
+    phi_rad = np.arctan2(
+        v - centre_image[1], 
+        distance_focale * fov_vertical / resolution_image[1])
+    phi = np.degrees(phi_rad)
+    phi = 180 if phi < 0 else phi
+
+    print("Theta = ", theta*0.36)
+    print("Phi = ", phi*0.36)
+    print("Ratio horizontal = ", fov_horizontal/180)
+    print("Ratio vertical = ", fov_vertical/180)
+    a = theta * (fov_horizontal/180)
+    b = phi * (fov_vertical/180)
+    print(a, b)
+
+    return(a, b)
+
 
 def main():
     # results = fetch_data(url)
