@@ -44,9 +44,6 @@ WebServer server(80);
 StaticJsonDocument<500> jdoc;
 char buffer[500];
 
-StaticJsonDocument<250> calculations;
-char calcBuffer[250];
-
 const char *ssid = "iPhone de Paul-Antoine";
 const char *password = "sucepute";
 
@@ -97,6 +94,8 @@ void start_server(void);
 void espToAPI(void);
 void create_json(const char *tag, int xValue, int yValue, int width, int height, float precison);
 void setPosition(void);
+void fade(int delay_time);
+void blink(int times, int delay_time);
 
 /**
  * @brief      Arduino setup function
@@ -116,9 +115,8 @@ void setup()
     else
         ei_printf("Camera initialized\r\n");
 
-    analogWrite(BUILT_IN_LED, 10);
+    blink(2, 100);
     ei_printf("\nStarting continious inference in 2 seconds...\n");
-    analogWrite(BUILT_IN_LED, LOW);
 
     ei_sleep(2000);
 }
@@ -211,14 +209,10 @@ void wifi_connection(void)
 {
     Serial.println("Connecting to WiFi...");
     WiFi.begin(ssid, password);
-    short int x = 0;
     while (WiFi.status() != WL_CONNECTED)
-    {
-        fade();
-    }
+        fade(500);
     Serial.println("Connected to WiFi");
-    blink(2, 100);
-    analogWrite(BUILT_IN_LED, 10);
+    blink(2, 300);
 }
 
 /**
@@ -227,7 +221,7 @@ void wifi_connection(void)
  * @param[in]  times       nombre de clignotements
  * @param[in]  delay_time  durée d'un clignotement
  */
-void blink(int times, int delay_time = 500)
+void blink(int times, int delay_time)
 {
     for (int i = 0; i < 5; i++)
     {
@@ -243,7 +237,7 @@ void blink(int times, int delay_time = 500)
  *
  * @param[in]  delay_time  The delay time
  */
-void fade(int delay_time = 500)
+void fade(int delay_time)
 {
     for (int i = 0; i < 5; i++)
     {
@@ -266,12 +260,13 @@ void fade(int delay_time = 500)
  */
 void start_server(void)
 {
-    server.on("/MLData", espToAPI);
-    server.on("/setPosition", test);
+    server.on("/MLData", HTTP_GET, espToAPI);
+    server.on("setPosition", HTTP_POST, setPosition);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
     Serial.println(myAddress);
+    blink(3, 300);
 }
 
 /**
@@ -297,21 +292,22 @@ void create_json(const char *tag, int xValue, int yValue, int width, int height,
 }
 
 /**
- * @brief      deserialize json
+ * @brief      Recupère les valeurs x et y de la requête POST apres les
+ *             calculs de position du Serveur de Calcul et les envoies au servo
  *
  */
 void setPosition(void)
 {
-    deserializeJson(calculations, server.arg("plain"));
-    int servoX = calculations["servoX"];
-    int servoY = calculations["servoY"];
-    Serial.println("Setting servo position");
-    Serial.printf("/%d,%d", servoX, servoY);
-}
-
-void test(void)
-{
-    Serial.println("/10,120");
+    if (server.hasArg("x") && server.hasArg("y"))
+    {
+        int x = server.arg("x").toInt();
+        int y = server.arg("y").toInt();
+        Serial.println("Setting servo position");
+        Serial.printf("/%d,%d", x, y);
+        server.send(200, "text/plain", "Received x: " + String(x) + ", y: " + String(y));
+    }
+    else
+        server.send(400, "text/plain", "Missing parameters");
 }
 
 /**
