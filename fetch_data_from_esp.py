@@ -1,11 +1,22 @@
+import random
+
 import requests
 import json
 import serial
 import sys 
 import time
-import numpy as np
+import paho.mqtt.client as mqtt_client
+import ssl
 
-url = "http://172.20.10.3/data"
+MQTT_CLIENT_ID = f'publish-{random.randint(0, 1000)}'
+MQTT_BROKER = "10.3.141.1"
+MQTT_USER = "pi-corte"
+MQTT_PASSWORD = "pi-corte"
+MQTT_TOPIC = "iot/canon"
+MQTT_PORT = 1883
+
+
+url = "http://172.20.10.3/MLData"
 if sys.platform == "linux":
     try:
         port = "/dev/ttyUSB0"
@@ -15,13 +26,35 @@ else:
     port = "COM4"
 
 baudrate = 115200
+def connect_mqtt():
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            print("Connected to MQTT Broker!")
+        else:
+            print("Failed to connect, return code %d\n", rc)
+
+    client = mqtt_client.Client(MQTT_CLIENT_ID)
+    client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+    client.on_connect = on_connect
+    client.connect(MQTT_BROKER, MQTT_PORT)
+    return client
+
+def subscribe(client: mqtt_client):
+    def on_message(client, userdata, msg):
+        print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+
+    client.subscribe(MQTT_TOPIC)
+    client.on_message = on_message
+
+
+
 
 def fetch_data(url_param: str):
     try:
         while True:
             response = requests.get(url_param)
             results = response.json()
-            print(results)
+            return results
     except Exception as e:
         print(str(e))
 
@@ -35,6 +68,10 @@ def write_data():
                     print(str(e))
     except:
         print("pas de port serial")
+
+
+def sendDataToMqttBroker():
+    print()
 
 def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical: int, distance_focale: int, resolution_image: tuple) -> tuple:
     """calcul les angles du canon avec les coordonnées d'un pixel sur l'écran de la caméra (ou du flux vidéo de la caméra)
@@ -69,23 +106,20 @@ def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical:
     print("Phi = ", phi*0.36)
     print("Ratio horizontal = ", fov_horizontal/180)
     print("Ratio vertical = ", fov_vertical/180)
-    angle_hor = theta * (fov_horizontal/180)
-    angle_ver = phi * (fov_vertical/180)
-    print(int(angle_hor + 90), int(angle_ver + 90))
+    a = theta * (fov_horizontal/180)
+    b = phi * (fov_vertical/180)
+    print(a, b)
 
-    return int(angle_hor), int(angle_ver)
+    return(a, b)
+
 
 def main():
-    #fetch_data(url)
-    #write_data()
-    #time.sleep(0.5)
-    coordonnees_pixel = (1920/2, 1)
-    fov_hor = 65
-    fov_ver = 19
-    distance_focale = 0.21
-    resolution_image = (1920, 1080)
-    print(coordonnees_pixel, fov_hor, fov_ver, distance_focale, resolution_image)
-    calculer_angles(coordonnees_pixel, fov_hor, fov_ver, distance_focale, resolution_image)
+    # results = fetch_data(url)
+    # print(results)
+    client = connect_mqtt()
+    client.publish(MQTT_TOPIC, "ilyas")
+    # write_data()
+    time.sleep(0.5)
 
 if __name__ == "__main__":
     main()
