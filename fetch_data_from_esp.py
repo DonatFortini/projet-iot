@@ -14,8 +14,14 @@ MQTT_PASSWORD = "pi-corte"
 MQTT_TOPIC = "iot/canon"
 MQTT_PORT = 1883
 
-url_fetch_data = "http://10.3.141.251/MLData"
-url_set_position_canon = "http://10.3.141.251/set"
+#-------BROKER URL-------------------#
+#url_fetch_data = "http://10.3.141.251/MLData"
+#url_set_position_canon = "http://10.3.141.251/set"
+
+
+#---------LOCAL URL------------------#
+url_fetch_data = "http://172.20.10.3/MLData"
+url_set_position_canon = "http://172.20.10.3/set"
 
 if sys.platform == "linux":
     try:
@@ -54,7 +60,7 @@ def subscribe(client: mqtt_client):
 
 # ------------------- API -------------------#
 
-def fetch_data(url_param: str = url_fetch_data) -> dict:
+def fetch_data(url_param: str) -> dict:
     """ Récupère les données de l'esp32
 
     Args:
@@ -82,6 +88,7 @@ def set_position_canon(data: tuple) -> dict:
         dict: _description_
     """
     try:
+        print("test")
         url_param = url_set_position_canon+"?x={data[0]}&y={data[1]}"
         response = requests.get(url_param)
         return response.json()
@@ -141,26 +148,31 @@ def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical:
     b = phi * (fov_vertical/180)
     print(a, b)
 
-    return (a, b)
+    return (360-theta, 360-phi)
 
 
 def main():
     temps_initial = time.time()
     while True:
-        results = fetch_data()
-        if results["type"] == "Humain":
-            angles = calculer_angles(
-                results["x"], results["y"], 75, 75, 3, (1920, 1080))
-            set_position_canon(angles)
+        results = fetch_data(url_fetch_data)
+        
+        try:
+            print(results)
+            if results["type"] == "humain":
+                tuple_result = (results["x"], results["y"])
+                angles = calculer_angles(tuple_result, 65, 19, 3, (96, 96))
+                print(angles)
+                set_position_canon(angles)
+        except Exception as e:
+            print("Erreur acquisition des données : ", e)
 
-        print(results)
-        temps_actuel = time.time()
-        temps_ecoule = temps_actuel - temps_initial
-        if temps_ecoule > 10:
-            print("envoie message mqtt")
-            client = connect_mqtt()
-            client.publish(MQTT_TOPIC, str(results))
-
+        if url_fetch_data.startswith("http://10.3"):
+            temps_actuel = time.time()
+            temps_ecoule = temps_actuel - temps_initial
+            if temps_ecoule > 10:
+                print("envoie message mqtt")
+                client = connect_mqtt()
+                client.publish(MQTT_TOPIC, str(results))
 
 if __name__ == "__main__":
     main()
