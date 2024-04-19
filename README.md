@@ -24,5 +24,22 @@ pip install -r requirement.txt
 
 
 
+### Description de l'IOT 
+Notre IOT est composé d'une carte Arduino, d'une carte ESP32 codée en C, une tourelle, d'un Joystick et d'un PC. Au niveau des capteurs il est composé d'une caméra sur laquelle tourne un algorithme de machine learning et d'un joystick. 
+Le Joystick permet de controler la tourelle et de pointer le laser sur une personne manuellement. 
+
+### Fonctionnement général de L'IOT
+Lorsque la caméra detecte, grâce à un modèle d'apprentissage, une personne, la tourelle pivote et pointe un rayon laser la personne détectée. Un mode manuel est disponible en appuyant sur le joystick.
+
+### Fonctionnement détaillé de l'IOT
+la carte Arduino est connecté en série au bloc caméra (capteur Caméra + ESP32), c'est cette carte qui va exposer une API REST qui permet de récuperées les données de détection de la caméra.
+Le PC recuppere les données de bounding box du json en utilisant la méthode GET de l'API. Le PC calcule l'angle qui va permettre à la tourelle de viser la personne détectée.
+Le PC envoie ensuite via l'API l'angle à la caméra, celle-ci envoie en série cette donnée à la carte Arduino, cette dernière connectée la tourelle, va faire pivoter la tourelle ce qui va permettre de viser la personne détectée. 
+Enfin le PC envoie, grâce à une librarie de client MQTT, les données au Broker MQTT. 
+
+
+
+
+
 
 
