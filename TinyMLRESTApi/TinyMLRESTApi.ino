@@ -44,8 +44,8 @@ WebServer server(80);
 StaticJsonDocument<500> jdoc;
 char buffer[500];
 
-const char *ssid = "SSIDODO";
-const char *password = "11235813213455";
+const char *ssid = "broker-rapsi-Salle-IoT";
+const char *password = "pi-corte";
 
 static camera_config_t camera_config = {
     .pin_pwdn = PWDN_GPIO_NUM,
