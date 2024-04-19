@@ -1,6 +1,5 @@
 import random
 import requests
-import serial
 import sys
 import time
 import paho.mqtt.client as mqtt_client
@@ -96,20 +95,6 @@ def set_position_canon(data: tuple) -> dict:
         print(str(e))
 
 
-# deprecated function
-# def write_data():
-#     """ Ecris les données sur le port serial de l'arduino
-#     """
-#     try:
-#         with serial.Serial(port, baudrate, timeout=1) as ser:
-#             while ser.isOpen():
-#                 try:
-#                     ser.write()
-#                 except Exception as e:
-#                     print(str(e))
-#     except:
-#         print("pas de port serial")
-
 
 def calculer_angles(coordonnees_pixel: tuple, fov_horizontal: int, fov_vertical: int, distance_focale: int, resolution_image: tuple) -> tuple:
     """calcul les angles du canon avec les coordonnées d'un pixel sur l'écran de la caméra (ou du flux vidéo de la caméra)
@@ -155,9 +140,9 @@ def main():
     temps_initial = time.time()
     while True:
         results = fetch_data(url_fetch_data)
-        
         try:
-            print(results)
+            # Si le type de l'objet est humain
+            # on effectue le calcul des angles
             if results["type"] == "humain":
                 tuple_result = (results["x"], results["y"])
                 angles = calculer_angles(tuple_result, 65, 19, 3, (96, 96))
@@ -166,6 +151,8 @@ def main():
         except Exception as e:
             print("Erreur acquisition des données : ", e)
 
+        # Envoie des données au bout de 10 secondes si
+        # on est sur l'ip du broker
         if url_fetch_data.startswith("http://10.3"):
             temps_actuel = time.time()
             temps_ecoule = temps_actuel - temps_initial

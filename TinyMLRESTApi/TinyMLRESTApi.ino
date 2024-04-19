@@ -94,6 +94,9 @@ void start_server(void);
 void espToAPI(void);
 void create_json(const char *tag, int xValue, int yValue, int width, int height, float precison);
 void setPosition(void);
+
+/*Helper Functions*/
+
 void fade(int delay_time);
 void blink(int times, int delay_time);
 
@@ -128,6 +131,7 @@ void setup()
  */
 void loop()
 {
+    // permet de gérer les requêtes du serveur
     server.handleClient();
     // instead of wait_ms, we'll wait on the signal, this allows threads to cancel us...
     if (ei_sleep(5) != EI_IMPULSE_OK)
@@ -165,9 +169,6 @@ void loop()
         return;
     }
 
-    // print the predictions
-    // ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",result.timing.dsp, result.timing.classification, result.timing.anomaly);
-
 #if EI_CLASSIFIER_OBJECT_DETECTION == 1
     bool bb_found = result.bounding_boxes[0].value > 0;
     for (size_t ix = 0; ix < result.bounding_boxes_count; ix++)
@@ -200,20 +201,7 @@ void loop()
     free(snapshot_buf);
 }
 
-/**
- * @brief      Connecte le device au wifi avec les identifiants donnés.
- *            la LED s'allume pendant la connexion et s'éteint une fois la connexion établie
- *
- */
-void wifi_connection(void)
-{
-    Serial.println("Connecting to WiFi...");
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-        fade(500);
-    Serial.println("Connected to WiFi");
-    blink(2, 300);
-}
+//---------------------------------- Helper functions--------------------------------------------
 
 /**
  * @brief      Fait clignoter la LED
@@ -254,14 +242,36 @@ void fade(int delay_time)
     }
 }
 
+//---------------------------------- Server functions--------------------------------------------
+
+/**
+ * @brief      Connecte le device au wifi avec les identifiants donnés.
+ *            la LED oscille tant que la connexion n'est pas établie
+ *              puis clignote 2 fois pour indiquer que la connexion est établie
+ *
+ */
+void wifi_connection(void)
+{
+    Serial.println("Connecting to WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+        fade(500);
+    Serial.println("Connected to WiFi");
+    blink(2, 300);
+}
+
 /**
  * @brief      Demmarre le server et met en place les routes de l'api
+ *              /MLData pour envoyer les données du model a l'api
+ *             /set pour recevoir les données de position du serveur de calcul
+ *            et les envoyer au servo
  *
+ *         La LED clignote 3 fois pour indiquer que le serveur est démarré
  */
 void start_server(void)
 {
     server.on("/MLData", HTTP_GET, espToAPI);
-    server.on("/set",HTTP_GET, setPosition);
+    server.on("/set", HTTP_GET, setPosition);
     server.begin();
     Serial.print("Connected to wifi. My address:");
     IPAddress myAddress = WiFi.localIP();
@@ -292,7 +302,7 @@ void create_json(const char *tag, int xValue, int yValue, int width, int height,
 }
 
 /**
- * @brief      Recupère les valeurs x et y de la requête POST apres les
+ * @brief      Recupère les valeurs x et y de la requête /set apres les
  *             calculs de position du Serveur de Calcul et les envoies au servo
  *
  */
@@ -312,6 +322,7 @@ void setPosition(void)
 
 /**
  * @brief    Envoies les données du model sur l'api
+ *          sous forme de json
  *
  */
 void espToAPI(void)
@@ -320,6 +331,8 @@ void espToAPI(void)
     Serial.println("Sending data to API");
     server.send(200, "application/json", buffer);
 }
+
+//---------------------------------- Camera functions--------------------------------------------
 
 /**
  * @brief   Setup image sensor & start streaming

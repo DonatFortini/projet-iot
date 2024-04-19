@@ -28,21 +28,24 @@ void setup()
 {
   servoBot.attach(SERVO_BOT);
   servoTop.attach(SERVO_TOP);
+
   button.setDebounceTime(50);
+
   servoBot.write(data[0]);
   servoTop.write(data[1]);
+  
   Serial.begin(115200);
 }
 
 void loop()
 {
-  button.loop();
+  button.loop(); // initialise le bouton
   buttonState = button.getState();
 
   if (button.isPressed())
   {
     joystickMode = !joystickMode;
-    delay(50);
+    delay(50); // Debounce le bouton
   }
 
   if (joystickMode)
@@ -51,6 +54,7 @@ void loop()
   {
     receivedData(data);
     if (data[0] != last_data[0] || data[1] != last_data[1])
+    // pour éviter de répéter la même commande en boucle
     {
       servoBot.write(data[0]);
       servoTop.write(data[1]);
