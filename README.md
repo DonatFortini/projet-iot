@@ -15,7 +15,7 @@ pip install -r requirement.txt
 
 Ajoutez `ei-iot-tracking-arduino-1.0.1.zip` à vos librairies via `sketch > include library > add .ZIP library...` dans l'IDE ARDUINO.
 
-Ensuite toujours dans l'IDE, installer les bibliotèques suivantes :
+Ensuite toujours dans l'IDE, installez les bibliotèques suivantes :
 * `Servo.h`
 * `ezButton.h`
 * `ArduinoJson.h`
@@ -35,6 +35,11 @@ Ensuite toujours dans l'IDE, installer les bibliotèques suivantes :
 #### Schema de montage
 ![schema](figures/schema%20de%20montage.png)
 
+#### Schema fonctionel
+
+![schemaFunc](figures/schema_fonctionel.png)
+
+
 #### Photo du projet
 
 ![demo](figures/IMG_0217.jpg)
@@ -42,9 +47,12 @@ Ensuite toujours dans l'IDE, installer les bibliotèques suivantes :
 ![demo](figures/IMG_0220.jpg)
 ![demo](figures/IMG_0221.jpg)
 
+##### Montage final
+
+![final](figures/IMG_0224.png)
 
 ## Description de l'objet
-Notre projet est composé d'une carte Arduino, d'une carte ESP32 codée en C sur laquelle tourne un algorithme de machine learning, une tourelle, un Joystick et d'un serveur de calcul. Au niveau des capteurs il est composé d'une caméra  et d'un joystick. 
+Notre projet est composé d'une carte Arduino, d'une carte ESP32 codée en C sur laquelle tourne un algorithme de machine learning, une tourelle, un Joystick et d'un serveur de calcul. Au niveau des capteurs il est composé d'une caméra et d'un joystick. 
 Le Joystick permet de controler la tourelle et de pointer le laser sur une personne manuellement. 
 
 ### Fonctionnement général de L'IOT
@@ -54,11 +62,11 @@ Lorsque la caméra détecte une personne grâce à un modèle d'apprentissage, l
 
 La carte Arduino est connectée en série au bloc caméra (capteur caméra + ESP32). Ce bloc expose une API REST permettant de récupérer les données de détection de la caméra (fournis par le model TINYML hébergé sur le bloc).
 
-Le PC récupère les données de la bounding box du JSON en utilisant la méthode GET (/MLData) de l'API. Il calcule ensuite l'angle nécessaire pour que la tourelle vise la personne détectée.
+Le Serveur de calcul, récupère les données de la bounding box dans un JSON, en utilisant la méthode GET (/MLData) de l'API. Il calcule ensuite l'angle nécessaire pour que la tourelle vise la personne détectée.
 
-Le PC envoie cet angle via l'API (/set?x=&y=) à la caméra, qui le transmet en série à la carte Arduino. Cette dernière, connectée à la tourelle, fait pivoter celle-ci pour viser la personne détectée.
+Le Serveur de calcul envoie cet angle via l'API (/set?x=&y=) à la caméra, qui le transmet en série à la carte Arduino. Cette dernière, connectée à la tourelle, fait pivoter celle-ci pour viser la personne détectée.
 
-Enfin, le PC envoie les données au Broker MQTT à l'aide d'une librairie de client MQTT.
+Enfin, le serveur de calcul envoie les données au Broker MQTT à l'aide d'une librairie de client MQTT.
 
 ## Contributeurs
 
